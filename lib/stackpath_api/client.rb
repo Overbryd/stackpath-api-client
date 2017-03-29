@@ -3,6 +3,7 @@ require 'json'
 
 module StackpathApi
   class Client
+    class Error < StandardError; end
 
     def initialize(consumer_key:, consumer_secret:, company_alias: nil, default_site_id: nil)
       @default_site_id = default_site_id
@@ -14,7 +15,12 @@ module StackpathApi
       response = request(:delete, "/v1/#{company_alias}/sites/#{site_id}/cache",
         files: files
       )
-      response.code == "200"
+      if response.code == "200"
+        true
+      else
+        message = JSON.parse(response.body).dig('error', 'message') rescue nil
+        raise Error, message || "unknown error"
+      end
     end
 
     def request(method, path, data, headers = {})
